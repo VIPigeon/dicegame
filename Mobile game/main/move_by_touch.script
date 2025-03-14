@@ -1,0 +1,25 @@
+
+function init(self)
+	self.state = "stay"
+	self.positions = {
+		stay = vmath.vector3(50, 50, 0),
+		reroll = vmath.vector3(200, 50, 0),
+	}
+	go.set_position(self.positions[self.state])
+end
+
+local function change_state(self)
+	if self.state == "stay" then
+		self.state = "reroll"
+	else
+		self.state = "stay"
+	end
+end
+
+function on_message(self, message_id, message, 	sender)
+	if message_id == hash("trigger_response") and message.enter then
+		change_state(self)
+		print(self.state)
+		go.set_position(self.positions[self.state])
+	end
+end
