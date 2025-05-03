@@ -22,24 +22,6 @@
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
             margin-bottom: 20px;
-            position: relative;
-        }
-        .area {
-            position: absolute;
-            width: 100%;
-            left: 0;
-            border: 2px dashed #ccc;
-            box-sizing: border-box;
-        }
-        #top-area {
-            top: 0;
-            height: 40%;
-            border-bottom: none;
-        }
-        #bottom-area {
-            bottom: 0;
-            height: 60%;
-            border-top: none;
         }
         .controls {
             margin-bottom: 20px;
@@ -54,6 +36,18 @@
             cursor: pointer;
             border-radius: 5px;
         }
+        #debug-panel {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            font-family: monospace;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -61,10 +55,214 @@
         <h1>Пять игральных кубиков</h1>
         <div class="controls">
             <button id="roll-button">Бросить кубики</button>
+            <button id="debug-toggle">Отладка (D)</button>
         </div>
         <div id="game"></div>
     </div>
-    <script src="src/game.js"></script>
-    
+    <div id="debug-panel"></div>
+
+    <script>
+        // Глобальные переменные
+        let gameScene;
+        let dice = [];
+        let diceValues = [];
+        const diceCount = 5;
+        const diceSize = 80;
+        const spacing = 20;
+        let startX;
+        let topArea, bottomArea;
+        let draggedDie = null;
+        let debugMode = true;
+        let debugPanel;
+
+        // Конфигурация игры
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 500,
+            parent: 'game',
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            },
+            backgroundColor: '#ffffff'
+        };
+
+        const game = new Phaser.Game(config);
+
+        function preload() {
+            gameScene = this;
+            this.load.setPath('pictures');
+            for (let i = 1; i <= 6; i++) {
+                this.load.image(`dice${i}`, `${i}.png`);
+            }
+        }
+
+        function create() {
+            gameScene = this;
+            debugPanel = document.getElementById('debug-panel');
+            
+            // Создаем области
+            createAreas();
+            
+            // Инициализация кубиков
+            initDice();
+            
+            // Кнопка броска
+            document.getElementById('roll-button').addEventListener('click', rollDice);
+            
+            // Кнопка отладки
+            document.getElementById('debug-toggle').addEventListener('click', toggleDebug);
+            
+            // Горячая клавиша отладки
+            this.input.keyboard.on('keydown-D', toggleDebug);
+        }
+
+        function createAreas() {
+            // Верхняя область (40% высоты)
+            topArea = gameScene.add.rectangle(
+                config.width / 2,
+                config.height * 0.2,
+                config.width - 40,
+                config.height * 0.4 - 20,
+                0xeeeeee
+            ).setStrokeStyle(2, 0xcccccc).setAlpha(0.3);
+            
+            // Нижняя область (60% высоты)
+            bottomArea = gameScene.add.rectangle(
+                config.width / 2,
+                config.height * 0.7,
+                config.width - 40,
+                config.height * 0.6 - 20,
+                0xeeeeee
+            ).setStrokeStyle(2, 0xcccccc).setAlpha(0.3);
+            
+            // Подсказки
+            gameScene.add.text(config.width / 2, 20, "Перетащите кубики сюда", { 
+                fontSize: '18px',
+                color: '#666'
+            }).setOrigin(0.5, 0);
+            
+            gameScene.add.text(config.width / 2, config.height * 0.4 + 10, "Кубики для броска", { 
+                fontSize: '18px',
+                color: '#666'
+            }).setOrigin(0.5, 0);
+        }
+
+        function initDice() {
+            startX = (config.width - (diceCount * diceSize + (diceCount - 1) * spacing)) / 2;
+            diceValues = Array(diceCount).fill().map(() => Phaser.Math.Between(1, 6));
+            
+            for (let i = 0; i < diceCount; i++) {
+                const x = startX + i * (diceSize + spacing) + diceSize / 2;
+                const y = config.height * 0.7;
+                
+                dice[i] = gameScene.add.sprite(x, y, `dice${diceValues[i]}`)
+                    .setDisplaySize(diceSize, diceSize)
+                    .setInteractive({ draggable: true })
+                    .setData('inBottomArea', true)
+                    .setData('originalX', x);
+                
+                gameScene.input.setDraggable(dice[i]);
+                
+                dice[i].on('dragstart', function() {
+                    draggedDie = this;
+                    gameScene.children.bringToTop(this);
+                    this.setData('previousArea', this.getData('inBottomArea'));
+                });
+                
+                dice[i].on('drag', function(pointer, dragX, dragY) {
+                    this.x = dragX;
+                    this.y = dragY;
+                });
+                
+                dice[i].on('dragend', function() {
+                    const die = this;
+                    const dieBounds = die.getBounds();
+                    
+                    // Проверка с небольшим отступом (10px)
+                    const inTopArea = dieBounds.y < config.height * 0.4 + 10;
+                    const inBottomArea = dieBounds.y > config.height * 0.6 - 10;
+                    
+                    if (inTopArea && !inBottomArea) {
+                        die.setData('inBottomArea', false);
+                        die.setData('targetX', getPositionInArea(dice.indexOf(die), false));
+                    } else if (inBottomArea && !inTopArea) {
+                        die.setData('inBottomArea', true);
+                        die.setData('targetX', die.getData('originalX'));
+                    } else {
+                        // Возвращаем в предыдущую область
+                        die.setData('inBottomArea', die.getData('previousArea'));
+                        die.setData('targetX', die.getData('previousArea') ? 
+                            die.getData('originalX') : 
+                            getPositionInArea(dice.indexOf(die), false));
+                    }
+                    
+                    updateDicePosition(dice.indexOf(die));
+                    draggedDie = null;
+                });
+            }
+        }
+
+        function getPositionInArea(index, inBottomArea) {
+            if (inBottomArea) {
+                return startX + index * (diceSize + spacing) + diceSize / 2;
+            } else {
+                return (config.width / 2 - (diceCount * diceSize / 2)) + index * diceSize;
+            }
+        }
+
+        function updateDicePosition(index) {
+            const die = dice[index];
+            const inBottomArea = die.getData('inBottomArea');
+            const targetY = inBottomArea ? config.height * 0.7 : config.height * 0.2;
+            const targetX = die.getData('targetX') || die.x;
+            
+            gameScene.tweens.add({
+                targets: die,
+                x: targetX,
+                y: targetY,
+                duration: 300,
+                ease: 'Power2'
+            });
+        }
+
+        function rollDice() {
+            for (let i = 0; i < diceCount; i++) {
+                if (dice[i].getData('inBottomArea')) {
+                    diceValues[i] = Phaser.Math.Between(1, 6);
+                    dice[i].setTexture(`dice${diceValues[i]}`);
+                    
+                    gameScene.tweens.add({
+                        targets: dice[i],
+                        angle: 360,
+                        duration: 300,
+                        ease: 'Bounce'
+                    });
+                }
+            }
+        }
+
+        function toggleDebug() {
+            debugMode = !debugMode;
+            debugPanel.style.display = debugMode ? 'block' : 'none';
+            const btn = document.getElementById('debug-toggle');
+            btn.style.backgroundColor = debugMode ? '#4CAF50' : '#333';
+            btn.textContent = `Отладка (${debugMode ? 'ON' : 'OFF'})`;
+        }
+
+        function update() {
+            if (!debugMode) return;
+            
+            let debugText = '<strong>Кубики:</strong><br>';
+            dice.forEach((die, index) => {
+                const bounds = die.getBounds();
+                debugText += `#${index + 1}: X=${Math.round(die.x)} Y=${Math.round(die.y)} `;
+                debugText += `Область: ${die.getData('inBottomArea') ? 'НИЖНЯЯ' : 'ВЕРХНЯЯ'}<br>`;
+            });
+            debugPanel.innerHTML = debugText;
+        }
+    </script>
 </body>
 </html>
