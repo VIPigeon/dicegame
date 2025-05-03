@@ -9,3 +9,22 @@ Thumbs.db
 .project
 .cproject
 builtins
+
+# Node modules
+node_modules/
+
+# Логи
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Сборка
+dist/
+build/
+
+# Временные файлы
+*.tmp
+*.temp
+
+# Файлы среды
+.env
