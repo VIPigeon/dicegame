@@ -2,12 +2,21 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Five Dice Game</title>
+    <title>Пять игральных кубиков</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="./src/gameScene.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #f0f0f0; font-family: Arial; }
+        #game-container { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        #game { background: white; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        button { background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; margin: 10px; }
+    </style>
 </head>
 <body>
-    <div id="game-container"></div>
-    <script type="module" src="src/app.js"></script>
+    <div id="game-container">
+        <h1>Пять игральных кубиков</h1>
+        <button id="roll-button">Бросить кубики</button>
+        <div id="game"></div>
+    </div>
 </body>
 </html>
