@@ -2,29 +2,33 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Пять игральных кубиков с областями</title>
+    <title>Пять игральных кубиков на скатерти</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <style>
         body {
             margin: 0;
             padding: 0;
-            background-color: #f0f0f0;
+            background-color: #222;
             font-family: Arial, sans-serif;
+            overflow: hidden;
         }
         #game-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: 20px;
+            height: 100vh;
+            box-sizing: border-box;
         }
         #game {
-            background-color: white;
+            background-color: transparent;
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            overflow: hidden;
         }
         .controls {
             margin-bottom: 20px;
+            z-index: 10;
         }
         button {
             background-color: #4CAF50;
@@ -35,6 +39,7 @@
             margin: 0 10px;
             cursor: pointer;
             border-radius: 5px;
+            position: relative;
         }
         #debug-panel {
             position: fixed;
@@ -47,12 +52,13 @@
             border-radius: 5px;
             max-height: 200px;
             overflow-y: auto;
+            z-index: 100;
         }
     </style>
 </head>
 <body>
     <div id="game-container">
-        <h1>Пять игральных кубиков</h1>
+        <h1 style="color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Пять игральных кубиков</h1>
         <div class="controls">
             <button id="roll-button">Бросить кубики</button>
             <button id="debug-toggle">Отладка (D)</button>
@@ -74,6 +80,7 @@
         let draggedDie = null;
         let debugMode = true;
         let debugPanel;
+        let background;
 
         // Конфигурация игры
         const config = {
@@ -86,7 +93,8 @@
                 create: create,
                 update: update
             },
-            backgroundColor: '#ffffff'
+            backgroundColor: '#8b4513', // Цвет фона на случай если изображение не загрузится
+            transparent: true
         };
 
         const game = new Phaser.Game(config);
@@ -94,6 +102,10 @@
         function preload() {
             gameScene = this;
             this.load.setPath('pictures');
+            
+            // Загружаем фоновое изображение
+            this.load.image('background', 'table.png');
+            
             for (let i = 1; i <= 6; i++) {
                 this.load.image(`dice${i}`, `${i}.png`);
             }
@@ -103,7 +115,21 @@
             gameScene = this;
             debugPanel = document.getElementById('debug-panel');
             
-            // Создаем области
+            // Добавляем фоновое изображение с сохранением пропорций
+            background = this.add.image(0, 0, 'background').setOrigin(0);
+            
+            // Масштабируем изображение чтобы оно полностью покрывало игровую область
+            const scaleX = config.width / background.width;
+            const scaleY = config.height / background.height;
+            const scale = Math.max(scaleX, scaleY);
+            
+            background.setScale(scale).setScrollFactor(0);
+            
+            // Центрируем изображение
+            background.x = (config.width - background.displayWidth) / 2;
+            background.y = (config.height - background.displayHeight) / 2;
+            
+            // Создаем области поверх фона
             createAreas();
             
             // Инициализация кубиков
@@ -119,6 +145,7 @@
             this.input.keyboard.on('keydown-D', toggleDebug);
         }
 
+        // ... (остальные функции остаются без изменений, как в предыдущем коде)
         function createAreas() {
             // Верхняя область (40% высоты)
             topArea = gameScene.add.rectangle(
@@ -127,7 +154,7 @@
                 config.width - 40,
                 config.height * 0.4 - 20,
                 0xeeeeee
-            ).setStrokeStyle(2, 0xcccccc).setAlpha(0.3);
+            ).setStrokeStyle(2, 0xcccccc).setAlpha(0.2);
             
             // Нижняя область (60% высоты)
             bottomArea = gameScene.add.rectangle(
@@ -136,17 +163,21 @@
                 config.width - 40,
                 config.height * 0.6 - 20,
                 0xeeeeee
-            ).setStrokeStyle(2, 0xcccccc).setAlpha(0.3);
+            ).setStrokeStyle(2, 0xcccccc).setAlpha(0.2);
             
             // Подсказки
             gameScene.add.text(config.width / 2, 20, "Перетащите кубики сюда", { 
-                fontSize: '18px',
-                color: '#666'
+                fontSize: '32px',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 5
             }).setOrigin(0.5, 0);
             
             gameScene.add.text(config.width / 2, config.height * 0.4 + 10, "Кубики для броска", { 
-                fontSize: '18px',
-                color: '#666'
+                fontSize: '32px',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 5
             }).setOrigin(0.5, 0);
         }
 
