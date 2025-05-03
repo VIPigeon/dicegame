@@ -2,21 +2,69 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Пять игральных кубиков</title>
+    <title>Пять игральных кубиков с областями</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-    <script type="module" src="./src/gameScene.js"></script>
     <style>
-        body { margin: 0; padding: 0; background: #f0f0f0; font-family: Arial; }
-        #game-container { display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        #game { background: white; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
-        button { background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; margin: 10px; }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        #game {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .area {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            border: 2px dashed #ccc;
+            box-sizing: border-box;
+        }
+        #top-area {
+            top: 0;
+            height: 40%;
+            border-bottom: none;
+        }
+        #bottom-area {
+            bottom: 0;
+            height: 60%;
+            border-top: none;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 0 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
     <div id="game-container">
         <h1>Пять игральных кубиков</h1>
-        <button id="roll-button">Бросить кубики</button>
+        <div class="controls">
+            <button id="roll-button">Бросить кубики</button>
+        </div>
         <div id="game"></div>
     </div>
+    <script src="src/game.js"></script>
+    
 </body>
 </html>
